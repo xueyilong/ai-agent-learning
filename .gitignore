@@ -1,0 +1,25 @@
+# 环境变量与密钥（绝不提交）
+.env
+
+# 虚拟环境
+.venv/
+
+# IDE 配置
+.idea/
+
+# Python 缓存
+__pycache__/
+*.pyc
+
+# SQLite 数据库运行产物
+checkpoints.sqlite
+checkpoints.sqlite-shm
+checkpoints.sqlite-wal
+
+# 运行产生的对话数据
+chat_history.json
+chat_history_stream.json
+chat_history_stream2.json
+
+# 教材仓库（非本人代码）
+hello-agents/

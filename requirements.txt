@@ -1,0 +1,9 @@
+python-dotenv
+openai
+langchain
+langchain-openai
+langchain-core
+langchain-text-splitters
+langgraph
+langsmith
+dashscope
