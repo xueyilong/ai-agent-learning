@@ -9,7 +9,6 @@ from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI  # 文本向量化模型 + 聊天模型
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # 递归字符切块器
 from langchain_core.vectorstores import InMemoryVectorStore  # 内存向量库
-from langchain_core.tools.retriever import create_retriever_tool  # 把检索器包装成工具
 from langchain_core.tools import tool  # @tool 装饰器：把普通函数声明为可被模型调用的工具
 from typing_extensions import TypedDict  # 定义带类型字段的字典
 import operator  # 提供 operator.add，用于消息列表的合并（累加）

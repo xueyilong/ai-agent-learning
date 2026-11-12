@@ -5,5 +5,7 @@ langchain-openai
 langchain-core
 langchain-text-splitters
 langgraph
+langgraph-checkpoint-sqlite
 langsmith
 dashscope
+fastapi[standard]

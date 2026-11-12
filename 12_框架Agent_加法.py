@@ -9,7 +9,6 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter  # 递归字
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI  # 文本向量化模型 + 聊天模型
 from langchain_core.vectorstores import InMemoryVectorStore  # 内存向量库
 from langchain_core.tools import tool  # @tool 装饰器：把普通函数声明为工具
-from langchain_core.tools.retriever import create_retriever_tool  # 把检索器包装成工具
 from langchain.agents import create_agent  # 高层封装：一键创建 Agent
 from langgraph.checkpoint.sqlite import SqliteSaver  # 把对话状态存档到 SQLite 数据库
 import dashscope
