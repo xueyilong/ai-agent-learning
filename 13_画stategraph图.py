@@ -5,6 +5,9 @@
 执行流程：START -> model_call ->（模型要调工具就走 tool_node，否则结束）-> 回到 model_call。
 """
 import os
+import sqlite3
+import traceback
+
 from dotenv import load_dotenv
 from langchain_openai import OpenAIEmbeddings, ChatOpenAI  # 文本向量化模型 + 聊天模型
 from langchain_text_splitters import RecursiveCharacterTextSplitter  # 递归字符切块器
@@ -17,8 +20,11 @@ from langchain_core.messages import AnyMessage, HumanMessage, ToolMessage, Syste
 from langgraph.graph import StateGraph, START, END  # 状态图 + 起点/终点两个特殊标记
 from langgraph.checkpoint.sqlite import SqliteSaver  # 把对话状态存档到 SQLite 数据库
 import dashscope
+from fastapi import HTTPException, FastAPI
+from fastapi.sse import EventSourceResponse, ServerSentEvent
 from http import HTTPStatus
-
+from pydantic import BaseModel
+app = FastAPI(title="StateGraph＋fastapi接口")
 load_dotenv()
 with open("07_读写文件_学习笔记.md", "r", encoding="utf-8-sig") as f:
     text = f.read()
@@ -110,17 +116,43 @@ builder.add_node("tool_node", tool_node)
 builder.add_edge(START, "model_call")
 builder.add_conditional_edges("model_call", should_continue, ["tool_node", END])
 builder.add_edge("tool_node", "model_call")
-with SqliteSaver.from_conn_string("checkpoints.sqlite") as checkpointer:
-    graph = builder.compile(checkpointer=checkpointer)
-    config = {"configurable": {"thread_id": "user-1"}}
+connect = sqlite3.connect("checkpoints.sqlite", check_same_thread=False)
+checkpointer = SqliteSaver(connect)
+graph = builder.compile(checkpointer=checkpointer)
 
-    while True:
-        question = input("请输入（输入 quit 退出）：")
-        if question == "quit":
-            break
+
+class Question(BaseModel):
+    question: str
+    thread_id: str = "user_1"
+
+
+@app.post("/agent")
+def chat(message: Question):
+    if not message.question.strip():
+        raise HTTPException(status_code=400, detail="输入问题不能为空")
+    config = {"configurable": {"thread_id": message.thread_id}}
+    try:
         result = graph.invoke(
-            {"messages": [HumanMessage(content=question)]},
+            {"messages": [HumanMessage(content=message.question)]},
             config
         )
-        print(result["messages"][-1].content)
-print()
+    except Exception:
+        raise HTTPException(status_code=500, detail="服务器异常")
+    return result["messages"][-1].content
+
+
+@app.post("/agent/stream", response_class=EventSourceResponse)
+def stream_chat(messages: Question):
+    if not messages.question.strip():
+        raise HTTPException(status_code=400, detail="输入消息不能为空")
+    config = {"configurable": {"thread_id": messages.thread_id}}
+    inputs = {"messages": [HumanMessage(content=messages.question)]}
+    try:
+        for msg_chunk, metadata in graph.stream(inputs, config, stream_mode="messages"):
+            if msg_chunk.content:
+                yield ServerSentEvent(data=msg_chunk.content)
+        yield ServerSentEvent(raw_data="[DONE]", event="done")
+    except Exception as e:
+        print("真实异常类型:", repr(e))
+        traceback.print_exc()
+        yield ServerSentEvent(raw_data="服务器异常", event="error")
